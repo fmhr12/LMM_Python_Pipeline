@@ -20,13 +20,13 @@ YOLO_DIR  = Path('path')
 CHECKPOINT_PATH = Path("scan_progress_checkpoint.json")
 
 # --- MODEL ---
-MODEL_NAME = "gemini-3-pro-preview" 
+MODEL_NAME = "gemini-3.1-pro-preview" 
 
 client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
 
 # --- PROMPT: OCCLUSAL (ZERO-SHOT REVISION) ---
 PROMPT = """
-One of the prompts from Appendix 1A or 2A
+One of the prompts from Appendix 1 or 2
 """
 
 # --- HELPER FUNCTIONS ---
