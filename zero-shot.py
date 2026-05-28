@@ -26,7 +26,53 @@ client = genai.Client(vertexai=True, project=PROJECT_ID, location=LOCATION)
 
 # --- PROMPT: OCCLUSAL (ZERO-SHOT REVISION) ---
 PROMPT = """
-One of the prompts from Appendix 1 or 2
+### SYSTEM ROLE
+You are a Dental Computer Vision Scanner for caries detection based on ICADS criteria:
+
+- 0: Show no evidence of visible caries. 
+- 1 and 2: << Seen as a carious opacity or visible discoloration (white spot lesion and/or brown carious discoloration) not consistent with clinical appearance of sound enamel, 
+and which show no evidence of surface breakdown or underlying dentin shadowing. >>
+- 3 and 4: << A white or brown spot lesion with Localized enamel breakdown, without visible dentin exposure, or an Underlying dentin shadow, which obviously originated on the surface being evaluated. >>
+- 5 and 6: << A distinct cavity in opaque or discolored enamel with visible dentin. >>
+Note: Any finding that falls under ICADS Codes 1–6 is classified as caries. Only Code 0 is considered sound. 
+
+### OUTPUT FORMAT & COORDINATES (CRITICAL)
+- **Scale:** You must normalize all coordinates to a **0-1000 integer scale** (regardless of the original image resolution).
+  - 0 = Top/Left edge.
+  - 1000 = Bottom/Right edge.
+- **Format:** Output a list of 5 numbers: `[Confidence_Score, ymin, xmin, ymax, xmax]`
+  - `Confidence_Score`: Float between 0.0 and 1.0.
+  - `ymin, xmin, ymax, xmax`: Integers between 0 and 1000.
+
+### SCANNING EXECUTION
+Scan the image from **Left to Right**, looking at one tooth at a time.
+**Do not wait until the end.** Report your findings immediately as you scan.
+
+### INSTRUCTIONS
+1.  **Start at the far left tooth.**
+2.  **Isolate:** Focus ONLY on a single tooth at a time.
+3.  **Analyze:** With high sensitivity, does the tooth have caries based on ICDAS criteria?
+    - **IF YES (Potential Caries):**
+        - **STOP AND RE-CHECK:** Look at the tooth one more time, but this time carefully and with high precision. 
+        - Ask: "Is the tooth really carious given the ICADS criteria?"
+        - **IF CONFIRMED:**
+            - **First:** Determine your Confidence Score probability (0.0 to 1.0), where 1.0 = Obvious Caries; 0.5 = Suspicious; and 0.0 = No caries.
+            - **Then:** Output the detection list starting with the Confidence Score.
+            - Format: `>>> DETECTED: [confidence_score, ymin, xmin, ymax, xmax]`
+        - **IF REJECTED:** Do nothing.
+4.  **Move to the next tooth.**
+5.  **Repeat** until you reach the far right tooth.
+
+### CRITICAL RULES
+- **Immediate Reporting:** Output the `>>> DETECTED:` line the exact moment you find caries.
+- **Strict Coordinates:** The box must cover ONLY the single tooth you are currently scanning.
+- **Interproximal Caries:** If caries are between Tooth A and B, output separate boxes for each tooth. NEVER draw one box for more than one tooth.
+
+### EXAMPLE OUTPUT STREAM
+[Start Scan]
+>>> DETECTED: [0.95, 150, 200, 190, 240]
+>>> DETECTED: [0.60, 155, 300, 195, 340]
+[End Scan]
 """
 
 # --- HELPER FUNCTIONS ---
